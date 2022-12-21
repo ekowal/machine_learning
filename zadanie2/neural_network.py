@@ -5,7 +5,24 @@ import numpy as np
 
 
 class NeuralNetwork(object):
+    """
+    Batch learning neural network. The weights 
+    and biases are being updated through gradient
+    descent using backpropagation on batches
 
+    Atributes
+    ---------
+    layers_sizes: list of layers sizes
+    weights_init: weights and biases initialization method, possible
+        options are "random", "xavier" or "zeros"
+    act_func_names: str or list containing names of activation
+        functions for the respective layers, if value is string
+        then the same act func will be used for all layers
+    weights: list containing weights for all respective layers
+    biases: list containing biases for all respective layers
+
+
+    """
     def __init__(self, layers_sizes: list, weights_init: str="random", act_func_names="sigmoid"):
         self.layers = len(layers_sizes)
 
@@ -31,7 +48,23 @@ class NeuralNetwork(object):
                     np.zeros((n_l, x)) for x, n_l in zip(layers_sizes[:-1], layers_sizes[1:])
                     ]
 
-    def fit(self, training_data: zip, validation_data: zip, epochs: int=20, batch_size: int=10, c: float=3.0, verbose: bool=False):
+
+    def fit(self, training_data: zip, validation_data: zip, epochs: int=20, batch_size: int=10, c: float=0.3, verbose: bool=False):
+        """Performs neural network training using batches to modify 
+        weights and biases
+
+        Parameters
+        ----------
+        training_data: zip file containing pairs (x,y) of training
+            observations
+        validation_data: zip file containing validation data for model
+            evaluation (also overfitting spotting)
+        epochs: nr of epochs
+        batch_size: nr of observations in every batch
+        c: step size (learning rate) in gradient descent method
+        verbose: if True the method will print additional info
+            about the status of fitting
+        """
         training_data = list(training_data)
         validation_data = list(validation_data)
 
@@ -51,36 +84,56 @@ class NeuralNetwork(object):
 
 
     def predict(self, test_data: zip):
+        """Predicts labels for test data with feedforward"""
         test_data = list(test_data)
         preds = [np.argmax(self.feedforward(x)) for x, _ in test_data]
         return(preds)
 
 
     def feedforward(self, a: np.array):
+        """Returns the output of the network"""
         for b, w, f_name in zip(self.biases, self.weights, self.act_func_names):
             a = self.activation(f_name, np.dot(w, a)+b)
         return a
 
 
     def accuracy(self, validation_data: zip, n_val: int):
+        """Returns the value of one vs all accuracy criterium"""
         test_results = [(np.argmax(self.feedforward(x)), y) for (x, y) in validation_data]
         return sum(int(x == y) for (x, y) in test_results) / n_val
 
 
     def batch_fit(self, batch: np.array, c: float):
+        """Updates network's parameters by using gradient
+        descent with backpropagation batch wise
+        
+        Parameters
+        ----------
+        batch: matrix containing 'batch_size' observations
+        c: step size (learning rate) in gradient descent method
+        """
         grad_w = [np.zeros(w.shape) for w in self.weights]
         grad_b = [np.zeros(b.shape) for b in self.biases]
+
         for x, y in batch:
             delta_grad_b, delta_grad_w = self.backpropagation(x, y)
-            grad_b = [nb+dnb for nb, dnb in zip(grad_b, delta_grad_b)]
-            grad_w = [nw+dnw for nw, dnw in zip(grad_w, delta_grad_w)]
-        self.weights = [w-(c/len(batch))*nw
-                        for w, nw in zip(self.weights, grad_w)]
-        self.biases = [b-(c/len(batch))*nb
-                       for b, nb in zip(self.biases, grad_b)]
+            grad_b = [gb+dgb for gb, dgb in zip(grad_b, delta_grad_b)]
+            grad_w = [gw+dgw for gw, dgw in zip(grad_w, delta_grad_w)]
+
+        self.weights = [w-c*nw for w, nw in zip(self.weights, grad_w)]
+        self.biases = [b-c*nb for b, nb in zip(self.biases, grad_b)]
 
 
     def backpropagation(self, x: np.array, y: np.array):
+        """Returns a tuple which contains the changes to weight
+        (cost function gradient)
+        
+        Parameters
+        ----------
+        x: observation vector (of size 784 for mnist data)
+        y: vector with label (for mnist we have vector of length 10
+            indicating the number by position of 1)
+        """
         grad_w = [np.zeros(w.shape) for w in self.weights]
         grad_b = [np.zeros(b.shape) for b in self.biases]
 
@@ -110,11 +163,20 @@ class NeuralNetwork(object):
 
     @staticmethod
     def d_cost(output_activations: np.array, y: np.array):
+        """Cost function derivative"""
         return 2*(output_activations-y)
 
 
     @staticmethod
-    def activation(function_name: str, x: float):
+    def activation(function_name: str, x: np.array):
+        """Returns a value of activation function
+        
+        Parameters
+        ----------
+        function_name: activation function for respective 
+            layer
+        x: matrix on which we impose activation function
+        """
         match function_name:
             case "sigmoid":
                 return 1.0/(1.0+np.exp(-x))
@@ -126,6 +188,15 @@ class NeuralNetwork(object):
 
 
     def d_activation(self, function_name: str, x: float):
+        """
+        Returns a value of derivative of activation function
+
+        Parameters
+        ----------
+        function_name: derivative of activation function for 
+            respective layer
+        x: matrix on which we impose the function
+        """
         match function_name:
             case "sigmoid":
                 y = self.activation("sigmoid", x)
