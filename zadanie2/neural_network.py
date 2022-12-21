@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 
-class NeuralNetwork(object):
+class NeuralNetwork():
     """
     Batch learning neural network. The weights 
     and biases are being updated through gradient
@@ -40,7 +40,7 @@ class NeuralNetwork(object):
             case "xavier":
                 self.biases = [np.zeros((n_l, 1)) for n_l in layers_sizes[1:]]
                 self.weights = [
-                    np.random.normal(loc=0, scale=np.sqrt(1/n_l)) for x, n_l in zip(layers_sizes[:-1], layers_sizes[1:])
+                    np.random.normal(loc=0, scale=np.sqrt(1/n_l), size=(n_l, x)) for x, n_l in zip(layers_sizes[:-1], layers_sizes[1:])
                     ]
             case "zeros":
                 self.biases = [np.zeros((n_l, 1)) for n_l in layers_sizes[1:]]
