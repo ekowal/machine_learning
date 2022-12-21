@@ -6,16 +6,30 @@ import numpy as np
 
 class NeuralNetwork(object):
 
-    def __init__(self, layers_sizes: list, act_func_names="sigmoid"):
+    def __init__(self, layers_sizes: list, weights_init: str="random", act_func_names="sigmoid"):
         self.layers = len(layers_sizes)
-        self.biases = [np.random.randn(n_l, 1) for n_l in layers_sizes[1:]]
-        self.weights = [np.random.randn(n_l, x) for x, n_l in zip(layers_sizes[:-1], layers_sizes[1:])]
 
         if isinstance(act_func_names, str):
-            self.act_func_names = len(layers_sizes) * [act_func_names]
+            self.act_func_names = (len(layers_sizes)-1) * [act_func_names]
         else:
             self.act_func_names = act_func_names
 
+        match weights_init:
+            case "random":
+                self.biases = [np.random.randn(n_l, 1) for n_l in layers_sizes[1:]]
+                self.weights = [
+                    np.random.randn(n_l, x) for x, n_l in zip(layers_sizes[:-1], layers_sizes[1:])
+                    ]
+            case "xavier":
+                self.biases = [np.zeros((n_l, 1)) for n_l in layers_sizes[1:]]
+                self.weights = [
+                    np.random.normal(loc=0, scale=np.sqrt(1/n_l)) for x, n_l in zip(layers_sizes[:-1], layers_sizes[1:])
+                    ]
+            case "zeros":
+                self.biases = [np.zeros((n_l, 1)) for n_l in layers_sizes[1:]]
+                self.weights = [
+                    np.zeros((n_l, x)) for x, n_l in zip(layers_sizes[:-1], layers_sizes[1:])
+                    ]
 
     def fit(self, training_data: zip, validation_data: zip, epochs: int=20, batch_size: int=10, c: float=3.0, verbose: bool=False):
         training_data = list(training_data)
